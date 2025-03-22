@@ -8,6 +8,7 @@ import torch.nn as nn
 import network.fpn as fpn
 import network.nms as nms
 from data.augmentation import BALL_LABEL, PLAYER_LABEL, BALL_BBOX_SIZE
+import torchvision.ops as ops
 
 
 # Get ranges of cells to mark with ground truth location
@@ -320,6 +321,49 @@ class FootAndBall(nn.Module):
         ap, tp = count_parameters(self)
         print('Total (all/trainable): {} / {}'.format(ap, tp))
         print('')
+
+    def postprocess(self, predictions, conf_threshold=0.05, iou_threshold=0.5, top_k=100):
+        self.eval()
+        player_locs, player_scores, ball_scores = predictions
+        detections = []
+
+        batch_size = player_scores.shape[0]
+        for i in range(batch_size):
+            boxes = player_locs[i].view(-1, 4)  # (H*W, 4)
+            player_confs = player_scores[i].view(-1, 2).softmax(dim=-1)[:, 1]  # class 1 = person
+            ball_confs = ball_scores[i].view(-1, 2).softmax(dim=-1)[:, 1]      # class 1 = ball
+
+            boxes = boxes.cpu()
+            player_confs = player_confs.cpu()
+            ball_confs = ball_confs.cpu()
+
+            # Filter by confidence
+            keep_player = player_confs > conf_threshold
+            keep_ball = ball_confs > conf_threshold
+
+            # Create detections: [x1, y1, x2, y2, score, class_id]
+            player_preds = torch.cat([
+                boxes[keep_player],
+                player_confs[keep_player].unsqueeze(1),
+                torch.ones((keep_player.sum(), 1))  # class_id = 1 for person
+            ], dim=1)
+
+            ball_preds = torch.cat([
+                boxes[keep_ball],
+                ball_confs[keep_ball].unsqueeze(1),
+                torch.zeros((keep_ball.sum(), 1))  # class_id = 0 for ball
+            ], dim=1)
+
+            all_preds = torch.cat([player_preds, ball_preds], dim=0)
+
+            # Optional: NMS
+            if all_preds.shape[0] > 0:
+                keep = ops.nms(all_preds[:, :4], all_preds[:, 4], iou_threshold)
+                all_preds = all_preds[keep][:top_k]
+
+            detections.append(all_preds)
+
+        return detections
 
 
 def build_footandball_detector1(phase='train', max_player_detections=100, max_ball_detections=100,
