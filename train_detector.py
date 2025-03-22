@@ -119,13 +119,15 @@ def train(params: Params):
 
     assert os.path.exists(MODEL_FOLDER), ' Cannot create folder to save trained model: {}'.format(MODEL_FOLDER)
 
-    dataloaders = make_dataloaders(params)
-    print('Training set: Dataset size: {}'.format(len(dataloaders['train'].dataset)))
-    if 'val' in dataloaders:
-        print('Validation set: Dataset size: {}'.format(len(dataloaders['val'].dataset)))
+    # dataloaders = make_dataloaders(params)
+    # print('Training set: Dataset size: {}'.format(len(dataloaders['train'].dataset)))
+    # if 'val' in dataloaders:
+    #     print('Validation set: Dataset size: {}'.format(len(dataloaders['val'].dataset)))
 
     # Create model
     device = "cuda" if torch.cuda.is_available() else 'cpu'
+    print(params.model)
+    exit()
     model = footandball.model_factory(params.model, 'train')
     model.print_summary(show_architecture=True)
     model = model.to(device)
