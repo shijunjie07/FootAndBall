@@ -329,34 +329,34 @@ class FootAndBall(nn.Module):
 
         batch_size = player_scores.shape[0]
         for i in range(batch_size):
-            boxes = player_locs[i].view(-1, 4)  # (H*W, 4)
-            player_confs = player_scores[i].view(-1, 2).softmax(dim=-1)[:, 1]  # class 1 = person
-            ball_confs = ball_scores[i].view(-1, 2).softmax(dim=-1)[:, 1]      # class 1 = ball
+            # --- PLAYER ---
+            player_boxes = player_locs[i].permute(1, 2, 0).reshape(-1, 4)  # (H * W, 4)
+            player_confs = player_scores[i].permute(1, 2, 0).reshape(-1, 2).softmax(dim=-1)[:, 1]
 
-            boxes = boxes.cpu()
-            player_confs = player_confs.cpu()
-            ball_confs = ball_confs.cpu()
+            # --- BALL ---
+            ball_scores_flat = ball_scores[i].permute(1, 2, 0).reshape(-1, 2).softmax(dim=-1)[:, 1]
+            num_ball_preds = ball_scores_flat.shape[0]
+            # Fake anchor boxes for ball (e.g., center + dummy box), or skip box output for now
+            ball_boxes = torch.zeros((num_ball_preds, 4), device=ball_scores.device)  # Or compute real locations
 
-            # Filter by confidence
+            # Apply conf threshold
             keep_player = player_confs > conf_threshold
-            keep_ball = ball_confs > conf_threshold
+            keep_ball = ball_scores_flat > conf_threshold
 
-            # Create detections: [x1, y1, x2, y2, score, class_id]
             player_preds = torch.cat([
-                boxes[keep_player],
-                player_confs[keep_player].unsqueeze(1),
-                torch.ones((keep_player.sum(), 1))  # class_id = 1 for person
+                player_boxes[keep_player].cpu(),
+                player_confs[keep_player].unsqueeze(1).cpu(),
+                torch.ones((keep_player.sum(), 1))  # class_id = 1
             ], dim=1)
 
             ball_preds = torch.cat([
-                boxes[keep_ball],
-                ball_confs[keep_ball].unsqueeze(1),
-                torch.zeros((keep_ball.sum(), 1))  # class_id = 0 for ball
+                ball_boxes[keep_ball].cpu(),
+                ball_scores_flat[keep_ball].unsqueeze(1).cpu(),
+                torch.zeros((keep_ball.sum(), 1))  # class_id = 0
             ], dim=1)
 
             all_preds = torch.cat([player_preds, ball_preds], dim=0)
 
-            # Optional: NMS
             if all_preds.shape[0] > 0:
                 keep = ops.nms(all_preds[:, :4], all_preds[:, 4], iou_threshold)
                 all_preds = all_preds[keep][:top_k]
@@ -364,7 +364,6 @@ class FootAndBall(nn.Module):
             detections.append(all_preds)
 
         return detections
-
 
 def build_footandball_detector1(phase='train', max_player_detections=100, max_ball_detections=100,
                                 player_threshold=0.0, ball_threshold=0.0):
