@@ -1,0 +1,13 @@
+# Ignore Python bytecode
+__pycache__/
+*.pyc
+
+# Ignore virtual environments
+venv/
+
+# Ignore log files
+*.log
+
+train.py
+temp.py
+train_temp.py

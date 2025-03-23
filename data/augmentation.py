@@ -13,11 +13,11 @@ import torchvision.transforms as transforms
 import torchvision.transforms.functional as F
 
 # Labels starting from 0
-BALL_LABEL = 1
-PLAYER_LABEL = 2
+BALL_LABEL = 0
+PLAYER_LABEL = 1
 
 # Size of the ball bbox in pixels (fixed as we detect only ball center)
-BALL_BBOX_SIZE = 40
+BALL_BBOX_SIZE = 600
 
 NORMALIZATION_MEAN = [0.485, 0.456, 0.406]
 NORMALIZATION_STD = [0.229, 0.224, 0.225]

@@ -93,8 +93,9 @@ def create_groundtruth_maps(bboxes, blabels, img_shape, player_downsampling_fact
                 player_loc_t[idx, y1:y2 + 1, x1: x2+1, 1] = temp_y.unsqueeze(1)
 
                 # Normalized width and height
-                player_loc_t[idx, y1:y2 + 1, x1: x2+1, 2] = bbox_width / w
-                player_loc_t[idx, y1:y2 + 1, x1: x2+1, 3] = bbox_height / h
+                # player_loc_t[idx, y1:y2 + 1, x1: x2+1, 2] = bbox_width / w
+                player_loc_t[idx, y1:y2 + 1, x1: x2+1, 2] = float(bbox_width / w)
+                player_loc_t[idx, y1:y2 + 1, x1: x2+1, 3] = float(bbox_height / h)
 
     return player_loc_t, player_conf_t, ball_conf_t
 
