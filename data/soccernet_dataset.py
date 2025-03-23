@@ -43,17 +43,17 @@ class SoccerNetTrackingDataset(Dataset):
         boxes = torch.tensor(boxes, dtype=torch.float32)
         labels = torch.tensor(labels, dtype=torch.int64)
 
-        target = {
-            "boxes": boxes,
-            "labels": labels,
-            "image_id": torch.tensor([idx])
-        }
+        # target = {
+        #     "boxes": boxes,
+        #     "labels": labels,
+        #     "image_id": torch.tensor([idx])
+        # }
 
         # Apply image transforms if given
         if self.transform:
             image = self.transform(image)
 
-        return image, target
+        return image, boxes, labels
 
 
 def collate_fn(batch):
